@@ -1,0 +1,84 @@
+_min_copier_version: "9.4.0"
+_subdirectory: "template"
+_templates_suffix: ".jinja"
+_secret_questions:
+  - create_remote_repo
+
+_envops:
+  block_start_string: "[%"
+  block_end_string: "%]"
+  variable_start_string: "[["
+  variable_end_string: "]]"
+  comment_start_string: "[#"
+  comment_end_string: "#]"
+  keep_trailing_newline: true
+
+project_name:
+  type: str
+  help: Project slug in kebab-case
+  validator: "[% if not (project_name | regex_search('^[a-z][a-z0-9-]*$')) %]Project name must match ^[a-z][a-z0-9-]*$[% endif %]"
+
+description:
+  type: str
+  help: Short project description
+  default: "A Taitide project."
+
+stack:
+  type: str
+  help: Technology stack
+  choices:
+    - rust
+    - uv
+    - bun
+    - base
+  default: rust
+
+rust_kind:
+  type: str
+  help: Rust project layout
+  choices:
+    - workspace
+    - cli
+  default: workspace
+  when: "[[ stack == 'rust' ]]"
+
+visibility:
+  type: str
+  help: Repository visibility
+  choices:
+    - public
+    - private
+  default: public
+
+org:
+  type: str
+  help: GitHub organization
+  default: "[[ 'taitide-labs' if visibility == 'public' else 'taitide-inc' ]]"
+
+publish_registries:
+  type: bool
+  help: Publish package to public registries on release
+  default: false
+  when: "[[ visibility == 'public' and (stack in ['uv', 'bun'] or (stack == 'rust' and rust_kind == 'cli')) ]]"
+
+create_remote_repo:
+  type: bool
+  help: Create GitHub repository, configure rules, and open initial PR
+  default: false
+
+package_module:
+  type: str
+  when: false
+  default: "[[ project_name | replace('-', '_') ]]"
+
+_tasks:
+  - command:
+      - bash
+      - "[[ _copier_conf.src_path ]]/scripts/bootstrap.sh"
+      - "[[ stack ]]"
+      - "[[ visibility ]]"
+      - "[[ org ]]"
+      - "[[ project_name ]]"
+      - "[[ description ]]"
+      - "[[ create_remote_repo | lower ]]"
+    when: "[[ _copier_operation == 'copy' ]]"

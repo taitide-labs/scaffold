@@ -1,0 +1,22 @@
+.DS_Store
+.idea/
+.vscode/
+.env
+.env*.local
+.rumdl_cache/
+dist/
+[%- if stack == 'rust' %]
+target/
+.sccache/
+[%- elif stack == 'uv' %]
+.venv/
+__pycache__/
+*.py[oc]
+.pytest_cache/
+.ruff_cache/
+build/
+wheels/
+*.egg-info
+[%- elif stack == 'bun' %]
+node_modules/
+[%- endif %]

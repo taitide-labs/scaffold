@@ -1,0 +1,126 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+name: Sync Downstream
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      repositories:
+        description: "Comma-separated repositories or auto"
+        required: false
+        default: "auto"
+
+permissions: {}
+
+jobs:
+  sync:
+    name: Sync Downstream Repositories
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: app-token
+        with:
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }} # zizmor: ignore[github-app]
+          permission-contents: write
+          permission-pull-requests: write
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+        with:
+          install: true
+          cache: false
+      - name: Update downstream copier repositories
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          ORG: ${{ github.repository_owner }}
+          SELF_REPO: ${{ github.repository }}
+          REPOS_INPUT: ${{ inputs.repositories || 'auto' }}
+          SCAFFOLD_WORKSPACE: ${{ github.workspace }}
+        run: |
+          gh auth setup-git
+
+          if [ "$REPOS_INPUT" = "auto" ]; then
+            mapfile -t repos < <(gh api --paginate "orgs/${ORG}/repos?type=all&per_page=100" --jq '.[] | select(.archived == false) | .full_name')
+          else
+            IFS=',' read -ra raw_repos <<< "$REPOS_INPUT"
+            repos=()
+            for item in "${raw_repos[@]}"; do
+              trimmed=$(printf '%s' "$item" | xargs)
+              if [ -z "$trimmed" ]; then
+                continue
+              fi
+              case "$trimmed" in
+                */*) repos+=("$trimmed") ;;
+                *) repos+=("${ORG}/${trimmed}") ;;
+              esac
+            done
+          fi
+
+          work_root=$(mktemp -d)
+          trap 'rm -rf "$work_root"' EXIT
+
+          for repo in "${repos[@]}"; do
+            if [ "$repo" = "$SELF_REPO" ]; then
+              continue
+            fi
+
+            answers_b64=$(gh api "repos/${repo}/contents/.copier-answers.yml" --jq '.content' 2>/dev/null || true)
+            if [ -z "$answers_b64" ]; then
+              continue
+            fi
+
+            answers=$(printf '%s' "$answers_b64" | tr -d '\n' | base64 -d)
+            if ! printf '%s\n' "$answers" | grep -Eq '^_src_path:.*scaffold'; then
+              continue
+            fi
+
+            target="${work_root}/repo"
+            rm -rf "$target"
+            if ! git clone "https://github.com/${repo}.git" "$target"; then
+              echo "failed to clone ${repo}, skipping"
+              continue
+            fi
+
+            (
+              cd "$target"
+              git config user.name "taitide-release-bot[bot]"
+              git config user.email "taitide-release-bot[bot]@users.noreply.github.com"
+              branch="chore/sync-scaffold"
+              git checkout -B "$branch"
+
+              if ! mise x -C "$SCAFFOLD_WORKSPACE" -- copier update --trust --defaults --conflict=rej --quiet "$target"; then
+                echo "copier update failed for ${repo}, skipping"
+                exit 0
+              fi
+
+              if find . -name '*.rej' -not -path './.git/*' | grep -q .; then
+                echo "conflicts detected in ${repo}, skipping"
+                exit 0
+              fi
+
+              if git diff --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+                echo "no updates for ${repo}"
+                exit 0
+              fi
+
+              git add -A
+              git commit -m "chore(infra): 同步 scaffold 模板更新"
+              git push -f origin "$branch"
+
+              existing=$(gh pr list --repo "$repo" --head "$branch" --state open --json number --jq '.[0].number')
+              if [ -z "$existing" ]; then
+                gh pr create \
+                  --repo "$repo" \
+                  --head "$branch" \
+                  --title "chore(infra): 同步 scaffold 模板更新" \
+                  --body $'## 变更说明\n\n自动同步 `taitide-labs/scaffold` 最新模板更新。'
+              fi
+            )
+          done

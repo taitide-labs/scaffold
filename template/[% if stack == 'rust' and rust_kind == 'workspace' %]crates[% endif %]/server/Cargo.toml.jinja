@@ -1,0 +1,10 @@
+[package]
+name = "[[ project_name ]]-server"
+version.workspace = true
+edition.workspace = true
+[% if visibility == 'public' %]license.workspace = true
+repository.workspace = true
+[% endif %]publish = false
+
+[lints]
+workspace = true

@@ -1,0 +1,17 @@
+textRules:
+  spellcheck: 0
+
+ignore:
+[%- if stack == 'rust' %]
+  - "target/**"
+  - "Cargo.lock"
+[%- elif stack == 'uv' %]
+  - ".venv/**"
+  - "uv.lock"
+[%- elif stack == 'bun' %]
+  - "node_modules/**"
+  - "bun.lock"
+[%- endif %]
+  - "dist/**"
+  - ".rumdl_cache/**"
+  - "CHANGELOG.md"

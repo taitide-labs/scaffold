@@ -1,0 +1,50 @@
+import sys
+from importlib.metadata import PackageNotFoundError, version
+
+_NAME = "[[ project_name ]]"
+
+
+def _package_version() -> str:
+    try:
+        return version(_NAME)
+    except PackageNotFoundError:
+        return "0.1.0"
+
+
+def _help_text() -> str:
+    return (
+        "[[ project_name ]] — [[ description ]]\n\n"
+        "Usage: [[ project_name ]] [OPTIONS]\n\n"
+        "Options:\n"
+        "  -h, --help     Print help\n"
+        "  -V, --version  Print version"
+    )
+
+
+def _arg_error(kind: str, arg: str) -> int:
+    print(
+        f"error: {kind} argument: {arg}\nRun '{_NAME} --help' for usage.",
+        file=sys.stderr,
+    )
+    return 2
+
+
+def run(args: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if args is None else args
+    if not argv:
+        print(_help_text())
+        return 0
+    first = argv[0]
+    if first in ("-V", "--version"):
+        if len(argv) > 1:
+            return _arg_error("unexpected", argv[1])
+        print(f"{_NAME} {_package_version()}")
+        return 0
+    if first in ("-h", "--help"):
+        print(_help_text())
+        return 0
+    return _arg_error("unknown", first)
+
+
+def entrypoint() -> None:
+    raise SystemExit(run())

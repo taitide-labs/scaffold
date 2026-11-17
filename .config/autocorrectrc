@@ -1,0 +1,10 @@
+textRules:
+  spellcheck: 0
+
+ignore:
+  - "template/**"
+  - "node_modules/**"
+  - "dist/**"
+  - ".rumdl_cache/**"
+  - "bun.lock"
+  - "CHANGELOG.md"

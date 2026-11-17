@@ -1,0 +1,28 @@
+{
+  "name": "@taitide/scaffold",
+  "version": "0.0.0",
+  "description": "Unified Copier project scaffold and governance sync CLI for Taitide.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/taitide-labs/scaffold.git"
+  },
+  "bin": {
+    "scaffold": "bin/scaffold.js"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "bun build src/cli/index.ts --outfile dist/cli.js --target bun",
+    "prepack": "bun run build",
+    "test": "bun test",
+    "typecheck": "bun x tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.4",
+    "typescript": "^7.0.2"
+  }
+}

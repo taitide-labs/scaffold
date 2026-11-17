@@ -1,0 +1,9 @@
+import { expect, test } from "bun:test";
+import { runMain } from "@/cli/index.ts";
+
+test("handles version, help, empty args, and unknown arguments", () => {
+  expect(runMain(["--version"])).toBe(0);
+  expect(runMain(["--help"])).toBe(0);
+  expect(runMain([])).toBe(0);
+  expect(runMain(["--unknown"])).toBe(2);
+});
