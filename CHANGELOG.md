@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/taitide-labs/scaffold/compare/v0.1.1...v0.1.2) (2026-11-17)
+
+
+### Bug Fixes
+
+* **template:** 修正 Rust 虚拟工作区模板的 release-please 策略 ([#7](https://github.com/taitide-labs/scaffold/issues/7)) ([0e80939](https://github.com/taitide-labs/scaffold/commit/0e809399c9becf12c9a55cdbbab04c9b8793445c))
+
 ## [0.1.1](https://github.com/taitide-labs/scaffold/compare/v0.1.0...v0.1.1) (2026-11-17)
 
 
