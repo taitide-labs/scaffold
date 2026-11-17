@@ -8,6 +8,8 @@
   "include-commit-authors": true,
   "pull-request-header": "Automated release PR",
   "packages": {
-    ".": {}
+    ".": {
+      "initial-version": "0.1.0"
+    }
   }
 }
