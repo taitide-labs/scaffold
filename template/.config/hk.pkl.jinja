@@ -1,0 +1,141 @@
+amends "package://github.com/jdx/hk/releases/download/v2.12.0/hk@2.12.0#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v2.12.0/hk@2.12.0#/Builtins.pkl"
+
+steps {
+  ["autocorrect"] {
+[%- if stack == 'rust' %]
+    glob = List("*.md", "*.rs")
+[%- elif stack == 'uv' %]
+    glob = List("*.md", "*.py")
+[%- elif stack == 'bun' %]
+    glob = List("*.md", "*.ts", "*.js")
+[%- else %]
+    glob = List("*.md")
+[%- endif %]
+    check = "autocorrect --config .config/autocorrectrc --lint {{files}}"
+    fix = "autocorrect --config .config/autocorrectrc --fix {{files}}"
+  }
+
+  ["rumdl"] {
+    glob = List("*.md")
+    check = "rumdl check --config .config/rumdl.toml {{files}}"
+    fix = "rumdl check --config .config/rumdl.toml --fix {{files}}"
+  }
+
+  ["mmdr"] {
+    glob = List("*.md")
+    check = "for f in {{files}}; do if grep -q '```mermaid' \"$f\"; then mmdr -i \"$f\" --size --fastText >/dev/null || exit 1; fi; done"
+  }
+
+  ["lychee"] {
+    glob = List("*.md")
+    check = "lychee --config .config/lychee.toml --offline {{files}}"
+  }
+
+  ["typos"] = (Builtins.typos) {
+    exclude = List(".copier-answers.yml")
+  }
+
+  ["zizmor"] {
+    glob = List(".github/workflows/*.yml", ".github/workflows/*.yaml")
+    check = "zizmor --offline --quiet {{files}}"
+  }
+[%- if stack == 'rust' %]
+
+  ["cargo_fmt"] = Builtins.cargo_fmt
+
+  ["ast_grep"] {
+    glob = List("**/*.rs")
+    check = "ast-grep scan {{files}}"
+  }
+
+  ["ast_grep_rules"] {
+    glob = List("sgconfig.yml", "rules/**/*.yml")
+    check = "ast-grep scan"
+  }
+
+  ["cargo_clippy"] {
+    glob = List("**/*.rs", "Cargo.toml", "Cargo.lock", "clippy.toml")
+    check = "cargo clippy --manifest-path Cargo.toml --all-targets -- -D warnings"
+  }
+
+  ["cargo_test"] {
+    glob = List("**/*.rs", "Cargo.toml", "Cargo.lock")
+[%- if rust_kind == 'workspace' %]
+    check = "cargo nextest run --manifest-path Cargo.toml --workspace --locked --no-tests=pass"
+[%- else %]
+    check = "cargo nextest run --manifest-path Cargo.toml --locked --no-tests=pass"
+[%- endif %]
+  }
+[%- elif stack == 'uv' %]
+
+  ["ruff_format"] {
+    glob = List("*.py")
+    check = "ruff format --check {{files}}"
+    fix = "ruff format {{files}}"
+  }
+
+  ["ruff_check"] {
+    glob = List("*.py")
+    check = "ruff check {{files}}"
+    fix = "ruff check --fix {{files}}"
+  }
+
+  ["ty"] {
+    glob = List("*.py", "pyproject.toml")
+    check = "ty check"
+  }
+
+  ["pytest"] {
+    glob = List("*.py", "pyproject.toml", "uv.lock")
+    check = "uv run pytest"
+  }
+[%- elif stack == 'bun' %]
+
+  ["oxfmt"] = (Builtins.oxfmt) {
+    exclude = List("*.md")
+  }
+
+  ["oxlint"] {
+    glob = List("*.ts", "*.js")
+    check = "oxlint {{files}}"
+    fix = "oxlint --fix {{files}}"
+  }
+
+  ["typecheck"] {
+    glob = List("src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts", "tsconfig.json")
+    check = "bun run typecheck"
+  }
+
+  ["bun_test"] {
+    glob = List("src/**/*.ts", "tests/**/*.ts", "package.json")
+    check = "bun test"
+  }
+[%- endif %]
+}
+
+hooks {
+  ["commit-msg"] {
+    steps {
+      ["conventional_commit"] = Builtins.check_conventional_commit
+    }
+  }
+[%- if stack != 'base' %]
+
+  ["pre-push"] {
+    steps {
+[%- if stack == 'rust' %]
+      ["cargo_deny"] = Builtins.cargo_deny
+[%- elif stack == 'uv' %]
+      ["osv_scanner"] {
+        check = "osv-scanner scan source --lockfile=uv.lock"
+      }
+[%- elif stack == 'bun' %]
+      ["bun_audit"] {
+        check = "bun audit --audit-level=high"
+      }
+[%- endif %]
+    }
+  }
+[%- endif %]
+}

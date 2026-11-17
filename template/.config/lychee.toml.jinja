@@ -1,0 +1,12 @@
+#:schema https://json.schemastore.org/lychee.json
+
+offline = true
+[%- if stack == 'rust' %]
+exclude_path = ["target", "Cargo.lock", "dist", ".rumdl_cache", "CHANGELOG.md"]
+[%- elif stack == 'uv' %]
+exclude_path = [".venv", "uv.lock", "dist", ".rumdl_cache", "CHANGELOG.md"]
+[%- elif stack == 'bun' %]
+exclude_path = ["node_modules", "bun.lock", "dist", ".rumdl_cache", "CHANGELOG.md"]
+[%- else %]
+exclude_path = ["dist", ".rumdl_cache", "CHANGELOG.md"]
+[%- endif %]

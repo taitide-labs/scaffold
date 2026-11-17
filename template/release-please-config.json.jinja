@@ -1,0 +1,71 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+[%- if stack == 'rust' %]
+  "release-type": "rust",
+  "include-component-in-tag": false,
+  "draft": true,
+  "force-tag-creation": true,
+  "bump-minor-pre-major": true,
+  "include-commit-authors": true,
+  "pull-request-header": "Automated release PR",
+  "packages": {
+[%- if rust_kind == 'workspace' %]
+    ".": {
+      "extra-files": [
+        {
+          "type": "toml",
+          "path": "Cargo.toml",
+          "jsonpath": "$.workspace.package.version"
+        },
+        {
+          "type": "toml",
+          "path": "Cargo.lock",
+          "jsonpath": "$.package[?(@.name.value=='[[ project_name ]]-server')].version"
+        }
+      ]
+    }
+[%- else %]
+    ".": {}
+[%- endif %]
+  }
+[%- elif stack == 'uv' %]
+  "release-type": "python",
+  "include-component-in-tag": false,
+  "draft": true,
+  "force-tag-creation": true,
+  "bump-minor-pre-major": true,
+  "include-commit-authors": true,
+  "pull-request-header": "Automated release PR",
+  "packages": {
+    ".": {
+      "extra-files": [
+        {
+          "type": "toml",
+          "path": "uv.lock",
+          "jsonpath": "$.package[?(@.source && @.source.editable && @.source.editable.value=='.')].version"
+        }
+      ]
+    }
+  }
+[%- elif stack == 'bun' %]
+  "release-type": "node",
+  "include-component-in-tag": false,
+  "draft": true,
+  "force-tag-creation": true,
+  "bump-minor-pre-major": true,
+  "include-commit-authors": true,
+  "pull-request-header": "Automated release PR",
+  "packages": {
+    ".": {}
+  }
+[%- else %]
+  "release-type": "simple",
+  "include-component-in-tag": false,
+  "bump-minor-pre-major": true,
+  "include-commit-authors": true,
+  "pull-request-header": "Automated release PR",
+  "packages": {
+    ".": {}
+  }
+[%- endif %]
+}

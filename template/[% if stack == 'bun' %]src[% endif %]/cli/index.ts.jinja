@@ -1,0 +1,45 @@
+import pkg from "../../package.json";
+
+const CLI_NAME = "[[ project_name ]]";
+
+function helpText(): string {
+  return [
+    `${CLI_NAME} — ${pkg.description}`,
+    "",
+    `Usage: ${CLI_NAME} [OPTIONS]`,
+    "",
+    "Options:",
+    "  -h, --help     Print help",
+    "  -V, --version  Print version",
+  ].join("\n");
+}
+
+function printArgError(kind: string, arg: string): number {
+  console.error(`error: ${kind} argument: ${arg}\nRun '${CLI_NAME} --help' for usage.`);
+  return 2;
+}
+
+export function runMain(args: string[]): number {
+  const first = args[0];
+  if (first === undefined) {
+    console.log(helpText());
+    return 0;
+  }
+  if (first === "-V" || first === "--version") {
+    const extra = args[1];
+    if (extra !== undefined) {
+      return printArgError("unexpected", extra);
+    }
+    console.log(`${CLI_NAME} ${pkg.version}`);
+    return 0;
+  }
+  if (first === "-h" || first === "--help") {
+    console.log(helpText());
+    return 0;
+  }
+  return printArgError("unknown", first);
+}
+
+if (import.meta.main) {
+  process.exit(runMain(process.argv.slice(2)));
+}

@@ -1,0 +1,29 @@
+{
+  "name": "[% if visibility == 'public' %]@taitide/[[ project_name ]][% else %][[ project_name ]][% endif %]",
+  "version": "0.1.0",
+[% if visibility != 'public' %]  "private": true,
+[% endif %]  "description": "[[ description ]]",
+[% if visibility == 'public' %]  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/[[ org ]]/[[ project_name ]].git"
+  },
+[% endif %]  "bin": {
+    "[[ project_name ]]": "bin/[[ project_name ]].js"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "bun build src/cli/index.ts --outfile dist/cli.js --target bun",
+    "prepack": "bun run build",
+    "test": "bun test",
+    "typecheck": "bun x tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.4",
+    "typescript": "^7.0.2"
+  }
+}

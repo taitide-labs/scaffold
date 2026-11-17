@@ -1,0 +1,45 @@
+use std::io::Write;
+
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+const HELP: &str = concat!(
+    env!("CARGO_PKG_NAME"),
+    " — ",
+    env!("CARGO_PKG_DESCRIPTION"),
+    "\n\nUsage: ",
+    env!("CARGO_PKG_NAME"),
+    " [OPTIONS]\n\nOptions:\n  -h, --help     Print help\n  -V, --version  Print version",
+);
+
+fn write_line(writer: &mut impl Write, text: &str, code: u8) -> u8 {
+    if writeln!(writer, "{text}").is_err() {
+        return 1;
+    }
+    code
+}
+
+fn write_arg_error(err: &mut impl Write, kind: &str, arg: &str) -> u8 {
+    let name = env!("CARGO_PKG_NAME");
+    if writeln!(err, "error: {kind} argument: {arg}").is_err()
+        || writeln!(err, "Run '{name} --help' for usage.").is_err()
+    {
+        return 1;
+    }
+    2
+}
+
+pub fn run(args: &[String], out: &mut impl Write, err: &mut impl Write) -> u8 {
+    let Some(first) = args.first().map(String::as_str) else {
+        return write_line(out, HELP, 0);
+    };
+    if first == "-V" || first == "--version" {
+        if let Some(extra) = args.get(1) {
+            return write_arg_error(err, "unexpected", extra);
+        }
+        let name = env!("CARGO_PKG_NAME");
+        return write_line(out, &format!("{name} {VERSION}"), 0);
+    }
+    if first == "-h" || first == "--help" {
+        return write_line(out, HELP, 0);
+    }
+    write_arg_error(err, "unknown", first)
+}

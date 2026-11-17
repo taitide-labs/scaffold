@@ -1,0 +1,109 @@
+[% if rust_kind == 'workspace' %][workspace]
+resolver = "3"
+members = ["crates/server"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+[% if visibility == 'public' %]license = "MIT"
+repository = "https://github.com/[[ org ]]/[[ project_name ]]"
+[% endif %]
+[workspace.lints.rust]
+unsafe_code = "forbid"
+let_underscore_drop = "deny"
+
+[workspace.lints.clippy]
+allow_attributes = "forbid"
+allow_attributes_without_reason = "forbid"
+
+unwrap_used = "forbid"
+todo = "forbid"
+unimplemented = "forbid"
+dbg_macro = "forbid"
+let_underscore_must_use = "forbid"
+let_underscore_future = "forbid"
+panic_in_result_fn = "forbid"
+fallible_impl_from = "forbid"
+
+await_holding_lock = "forbid"
+await_holding_refcell_ref = "forbid"
+
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"
+wildcard_enum_match_arm = "deny"
+large_futures = "deny"
+print_stdout = "deny"
+print_stderr = "deny"
+
+disallowed_types = "deny"
+disallowed_methods = "deny"
+disallowed_macros = "deny"
+disallowed_fields = "deny"
+disallowed_names = "deny"
+
+cognitive_complexity = "deny"
+too_many_lines = "deny"
+needless_pass_by_value = "deny"
+cloned_instead_of_copied = "deny"
+clone_on_ref_ptr = "deny"
+mod_module_files = "forbid"
+tests_outside_test_module = "forbid"
+inline_modules = "deny"
+[% else %][package]
+name = "[[ project_name ]]"
+version = "0.1.0"
+edition = "2024"
+description = "[[ description ]]"
+readme = "README.md"
+[% if visibility == 'public' %]license = "MIT"
+repository = "https://github.com/[[ org ]]/[[ project_name ]]"
+[% else %]publish = false
+[% endif %]
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
+[lints.rust]
+unsafe_code = "forbid"
+let_underscore_drop = "deny"
+
+[lints.clippy]
+allow_attributes = "forbid"
+allow_attributes_without_reason = "forbid"
+
+unwrap_used = "forbid"
+todo = "forbid"
+unimplemented = "forbid"
+dbg_macro = "forbid"
+let_underscore_must_use = "forbid"
+let_underscore_future = "forbid"
+panic_in_result_fn = "forbid"
+fallible_impl_from = "forbid"
+
+await_holding_lock = "forbid"
+await_holding_refcell_ref = "forbid"
+
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"
+wildcard_enum_match_arm = "deny"
+large_futures = "deny"
+print_stdout = "deny"
+print_stderr = "deny"
+
+disallowed_types = "deny"
+disallowed_methods = "deny"
+disallowed_macros = "deny"
+disallowed_fields = "deny"
+disallowed_names = "deny"
+
+cognitive_complexity = "deny"
+too_many_lines = "deny"
+needless_pass_by_value = "deny"
+cloned_instead_of_copied = "deny"
+clone_on_ref_ptr = "deny"
+mod_module_files = "forbid"
+tests_outside_test_module = "forbid"
+inline_modules = "deny"
+[% endif %]

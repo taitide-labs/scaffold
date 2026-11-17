@@ -1,0 +1,27 @@
+import pytest
+
+from [[ package_module ]] import run
+
+
+def test_version(capsys: pytest.CaptureFixture[str]) -> None:
+    assert run(["--version"]) == 0
+    captured = capsys.readouterr()
+    assert captured.out.strip() == "[[ project_name ]] 0.1.0"
+    assert captured.err == ""
+
+
+def test_help_and_empty_args(capsys: pytest.CaptureFixture[str]) -> None:
+    assert run(["--help"]) == 0
+    help_out = capsys.readouterr().out
+    assert "Usage: [[ project_name ]]" in help_out
+
+    assert run([]) == 0
+    empty_out = capsys.readouterr().out
+    assert empty_out == help_out
+
+
+def test_unknown_argument(capsys: pytest.CaptureFixture[str]) -> None:
+    assert run(["--unknown"]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "error: unknown argument: --unknown" in captured.err
