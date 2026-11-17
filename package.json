@@ -1,6 +1,6 @@
 {
   "name": "@taitide/scaffold",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Unified Copier project scaffold and governance sync CLI for Taitide.",
   "license": "MIT",
   "repository": {
