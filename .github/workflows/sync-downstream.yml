@@ -71,12 +71,10 @@ jobs:
               continue
             fi
 
-            answers_b64=$(gh api "repos/${repo}/contents/.copier-answers.yml" --jq '.content' 2>/dev/null || true)
-            if [ -z "$answers_b64" ]; then
+            if ! answers=$(gh api -H "Accept: application/vnd.github.raw" "repos/${repo}/contents/.copier-answers.yml" 2>/dev/null); then
               continue
             fi
 
-            answers=$(printf '%s' "$answers_b64" | tr -d '\n' | base64 -d)
             if ! printf '%s\n' "$answers" | grep -Eq '^_src_path:.*scaffold'; then
               continue
             fi
@@ -114,7 +112,7 @@ jobs:
               git commit -m "chore(infra): 同步 scaffold 模板更新"
               git push -f origin "$branch"
 
-              existing=$(gh pr list --repo "$repo" --head "$branch" --state open --json number --jq '.[0].number')
+              existing=$(gh pr list --repo "$repo" --head "$branch" --state open --json number --jq '.[0].number // empty')
               if [ -z "$existing" ]; then
                 gh pr create \
                   --repo "$repo" \
