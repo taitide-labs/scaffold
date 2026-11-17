@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/taitide-labs/scaffold/compare/v0.1.0...v0.1.1) (2026-11-17)
+
+
+### Bug Fixes
+
+* **release:** 确保外部包源发布成功后再公开 GitHub Release ([#5](https://github.com/taitide-labs/scaffold/issues/5)) ([43956a9](https://github.com/taitide-labs/scaffold/commit/43956a943f073643ec858addc7777b25ef8022e7))
+
 ## 0.1.0 (2026-11-17)
 
 
