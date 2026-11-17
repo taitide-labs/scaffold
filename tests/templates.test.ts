@@ -210,6 +210,12 @@ describe("template matrix rendering", () => {
         expect(miseToml).toContain('zizmor = "1"');
         if (variant.stack === "rust") {
           expect(miseToml).toContain("cargo deny check");
+          const releaseConfig = JSON.parse(
+            readFileSync(path.join(tempDir, "release-please-config.json"), "utf8"),
+          ) as { "release-type": string };
+          expect(releaseConfig["release-type"]).toBe(
+            variant.rustKind === "workspace" ? "simple" : "rust",
+          );
         } else if (variant.stack === "uv") {
           expect(miseToml).toContain("osv-scanner");
         } else if (variant.stack === "bun") {
