@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/taitide-labs/scaffold/compare/v0.1.2...v0.1.3) (2026-11-18)
+
+
+### Bug Fixes
+
+* **renovate:** 禁用下游 Copier 扫描并规范默认模板地址 ([#10](https://github.com/taitide-labs/scaffold/issues/10)) ([5f1c977](https://github.com/taitide-labs/scaffold/commit/5f1c977cde316c5ea6509b2d88c63701c891a71d))
+
 ## [0.1.2](https://github.com/taitide-labs/scaffold/compare/v0.1.1...v0.1.2) (2026-11-17)
 
 
