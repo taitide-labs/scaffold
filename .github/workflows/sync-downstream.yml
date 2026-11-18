@@ -103,6 +103,8 @@ jobs:
                 exit 0
               fi
 
+              sed -i 's|^_src_path: gh:taitide-labs/scaffold$|_src_path: https://github.com/taitide-labs/scaffold.git|' .copier-answers.yml
+
               if git diff --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
                 echo "no updates for ${repo}"
                 exit 0

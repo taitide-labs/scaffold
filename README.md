@@ -58,7 +58,7 @@ mise run check
 | 项目描述     | `--description`   | 默认 `A Taitide project.`                   | 写入清单与文档概览                           |
 | 仓库可见性   | `--visibility`    | `public`、`private`，默认 `public`          | 控制开源治理文件、CodeQL 与自动合并          |
 | GitHub 组织  | `--org`           | 默认公开 `taitide-labs`、私有 `taitide-inc` | 用于远端仓库创建与文档链接                   |
-| 模板来源     | `--template`      | 默认 `gh:taitide-labs/scaffold`             | 支持本地目录或 Git 仓库地址                  |
+| 模板来源 | `--template` | 默认 `https://github.com/taitide-labs/scaffold.git` | 支持本地目录或 Git 仓库地址 |
 | 非交互默认值 | `--defaults`      | 默认关闭                                    | 对未指定选项应用模板默认值                   |
 | 创建远端仓库 | `--create-remote` | 默认关闭                                    | 仅 `new` 支持，自动建库、配规则并提交首个 PR |
 

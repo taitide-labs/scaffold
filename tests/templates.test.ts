@@ -80,9 +80,23 @@ function collectFiles(rootDir: string): string[] {
   return results;
 }
 
+const GIT_HOOK_VARS = new Set([
+  "GIT_DIR",
+  "GIT_WORK_TREE",
+  "GIT_INDEX_FILE",
+  "GIT_COMMON_DIR",
+  "GIT_PREFIX",
+  "GIT_OBJECT_DIRECTORY",
+  "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+]);
+
 function runSync(cmd: string[], cwd: string): { status: number; stdout: string; stderr: string } {
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => !GIT_HOOK_VARS.has(key)),
+  );
   const proc = Bun.spawnSync(cmd, {
     cwd,
+    env,
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -195,6 +209,11 @@ describe("template matrix rendering", () => {
           "utf8",
         );
         const renovateJson = readFileSync(path.join(tempDir, ".github/renovate.json"), "utf8");
+        const parsedRenovate = JSON.parse(renovateJson) as {
+          copier?: { enabled: boolean };
+          platformAutomerge?: boolean;
+        };
+        expect(parsedRenovate.copier).toEqual({ enabled: false });
         if (isPublic) {
           expect(renovateJson).not.toContain('"platformAutomerge": false');
         } else {

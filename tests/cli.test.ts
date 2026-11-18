@@ -239,7 +239,7 @@ describe("parseScaffoldArgs", () => {
       visibility: undefined,
       org: undefined,
       publishRegistries: false,
-      template: "gh:taitide-labs/scaffold",
+      template: "https://github.com/taitide-labs/scaffold.git",
       defaults: false,
       dryRun: false,
       quiet: false,
@@ -268,7 +268,7 @@ describe("buildCopierArgs", () => {
       "stack=rust",
       "-d",
       "create_remote_repo=true",
-      "gh:taitide-labs/scaffold",
+      "https://github.com/taitide-labs/scaffold.git",
       "shopkit",
     ]);
   });
@@ -296,7 +296,7 @@ describe("buildCopierArgs", () => {
       "rust_kind=cli",
       "-d",
       "publish_registries=true",
-      "gh:taitide-labs/scaffold",
+      "https://github.com/taitide-labs/scaffold.git",
       "kitcode",
     ]);
   });
@@ -318,7 +318,7 @@ describe("buildCopierArgs", () => {
       "project_name=py-service",
       "-d",
       "stack=uv",
-      "gh:taitide-labs/scaffold",
+      "https://github.com/taitide-labs/scaffold.git",
       ".",
     ]);
   });
@@ -430,7 +430,7 @@ describe("runMain", () => {
         "project_name=demo-app",
         "-d",
         "stack=base",
-        "gh:taitide-labs/scaffold",
+        "https://github.com/taitide-labs/scaffold.git",
         ".",
       ],
     ]);
