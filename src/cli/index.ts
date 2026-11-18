@@ -127,7 +127,7 @@ function formatStackOptionsHelp(command: "new" | "adopt", stack: Stack): string 
   }
 
   lines.push(
-    "  --template <src>         Template source (default: gh:taitide-labs/scaffold)",
+    "  --template <src>         Template source (default: https://github.com/taitide-labs/scaffold.git)",
     "  --defaults               Use default answers for unprovided questions",
     "  -n, --dry-run            Run without writing files",
     "  -q, --quiet              Suppress non-error output",

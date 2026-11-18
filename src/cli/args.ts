@@ -1,6 +1,6 @@
 import path from "node:path";
 
-export const DEFAULT_TEMPLATE = "gh:taitide-labs/scaffold";
+export const DEFAULT_TEMPLATE = "https://github.com/taitide-labs/scaffold.git";
 export const PROJECT_NAME_PATTERN = /^[a-z][a-z0-9-]*$/;
 
 export type Stack = "base" | "rust" | "uv" | "bun";
