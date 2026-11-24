@@ -245,6 +245,7 @@ describe("template matrix rendering", () => {
         expect(hkPkl).toContain('profiles = List("docs", "code")');
         expect(hkPkl).toContain('"!fmt"');
         expect(hkPkl).not.toContain('["pre-push"]');
+        expect(hkPkl).toMatch(/\["autocorrect"\]\s*\{[\s\S]*?glob = List\("\*\.md"\)/);
 
         const agentsMd = readFileSync(path.join(tempDir, "AGENTS.md"), "utf8");
         expect(agentsMd).toContain("[CONTRIBUTING.md](CONTRIBUTING.md)");
@@ -264,7 +265,7 @@ describe("template matrix rendering", () => {
           expect(devRulesMd).not.toContain("`rules/`");
         }
         if (isPublic) {
-          expect(devRulesMd).toContain("gh pr merge --auto --delete-branch");
+          expect(devRulesMd).toContain("gh pr merge --auto --squash --delete-branch");
         } else {
           expect(devRulesMd).not.toContain("gh pr merge --auto");
         }

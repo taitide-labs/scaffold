@@ -14,4 +14,4 @@
 
 - 当需要引入新命令时，必须先接入 `mise` 或 `hk` 作为统一入口，仅当命令专属于本地或一次性使用时可独立执行；接入的命令应当保持静默执行，仅当发生异常时输出日志，以避免污染上下文。
 - 当本次修改需要提交代码时，避免提前手动执行 `mise` 检查命令，交由 Git Hook 自动执行。
-- 当提交 PR 后等待校验时，优先执行 `gh pr merge --auto --delete-branch && (gh pr checks --watch -i 30 --fail-fast > /dev/null 2>&1 || gh pr checks)`，以抑制轮询日志刷屏。
+- 当提交 PR 后等待校验时，优先执行 `gh pr merge --auto --squash --delete-branch && (gh pr checks --watch -i 30 --fail-fast > /dev/null 2>&1 || gh pr checks)`，以抑制轮询日志刷屏。
