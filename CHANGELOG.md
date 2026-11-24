@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.0](https://github.com/taitide-labs/scaffold/compare/v0.1.3...v0.2.0) (2026-11-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **template:** 同步工程基建、架构规则与工作流分层 ([#12](https://github.com/taitide-labs/scaffold/issues/12))
+
+### Features
+
+* **template:** 同步工程基建、架构规则与工作流分层 ([#12](https://github.com/taitide-labs/scaffold/issues/12)) ([9cad095](https://github.com/taitide-labs/scaffold/commit/9cad095127b4bdd1f2fb9abdeae7f872a8280c4d))
+
 ## [0.1.3](https://github.com/taitide-labs/scaffold/compare/v0.1.2...v0.1.3) (2026-11-18)
 
 
