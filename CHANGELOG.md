@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/taitide-labs/scaffold/compare/v0.2.0...v0.2.1) (2026-11-24)
+
+
+### Bug Fixes
+
+* **template:** 修复开发规范指引、oxfmt 排除与下游同步权限 ([#14](https://github.com/taitide-labs/scaffold/issues/14)) ([40ae660](https://github.com/taitide-labs/scaffold/commit/40ae66043d24fef0079f63820703cd63d78a479a))
+
 ## [0.2.0](https://github.com/taitide-labs/scaffold/compare/v0.1.3...v0.2.0) (2026-11-24)
 
 
