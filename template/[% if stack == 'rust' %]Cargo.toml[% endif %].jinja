@@ -51,6 +51,12 @@ mod_module_files = "forbid"
 tests_outside_test_module = "forbid"
 inline_modules = "deny"
 
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
 [profile.release]
 lto = "thin"
 codegen-units = 1
