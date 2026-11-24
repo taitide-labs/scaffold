@@ -2,7 +2,8 @@
 
 ## 补充必要上下文
 
-- 当仓库存在 `docs/adr/` 时，先列出文件名并按需读取。
+- 当仓库存在 `context.md` 或 `context-map.md` 时，先读取并按需查看所需上下文的 `backend/contexts/<context>/context.md`。
+- 当仓库存在 `docs/adr/` 或 `backend/contexts/<context>/docs/adr/` 时，先列出文件名并按需读取。
 [%- if stack == 'rust' %]
 - 列出 `rules/` 下的 `ast-grep` 规则文件名并按需读取。
 [%- endif %]

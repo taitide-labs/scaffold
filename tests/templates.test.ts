@@ -256,6 +256,7 @@ describe("template matrix rendering", () => {
         expect(contributingMd).not.toContain("pre-push");
 
         const devRulesMd = readFileSync(path.join(tempDir, "docs/development_rules.md"), "utf8");
+        expect(devRulesMd).toContain("context-map.md");
         expect(devRulesMd).toContain("mise tasks");
         if (variant.stack === "rust") {
           expect(devRulesMd).toContain("`rules/`");
