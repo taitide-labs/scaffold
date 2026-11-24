@@ -6,15 +6,7 @@ profiles = List("docs", "code")
 steps {
   ["autocorrect"] {
     profiles = List("docs")
-[%- if stack == 'rust' %]
-    glob = List("*.md", "*.rs")
-[%- elif stack == 'uv' %]
-    glob = List("*.md", "*.py")
-[%- elif stack == 'bun' %]
-    glob = List("*.md", "*.ts", "*.js")
-[%- else %]
     glob = List("*.md")
-[%- endif %]
     check = "autocorrect --config .config/autocorrectrc --lint {{files}}"
     fix = "autocorrect --config .config/autocorrectrc --fix {{files}}"
   }

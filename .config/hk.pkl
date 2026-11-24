@@ -6,7 +6,7 @@ profiles = List("docs", "code")
 steps {
   ["autocorrect"] {
     profiles = List("docs")
-    glob = List("*.md", "*.ts", "*.js")
+    glob = List("*.md")
     exclude = List("template/**")
     check = "autocorrect --config .config/autocorrectrc --lint {{files}}"
     fix = "autocorrect --config .config/autocorrectrc --fix {{files}}"
