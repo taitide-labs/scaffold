@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/taitide-labs/scaffold/compare/v0.2.2...v0.2.3) (2026-11-24)
+
+
+### Bug Fixes
+
+* **template:** 限制排版检查仅作用于文档并补充自动合并参数 ([#18](https://github.com/taitide-labs/scaffold/issues/18)) ([5a79f31](https://github.com/taitide-labs/scaffold/commit/5a79f311f6738ee653aac424f9bba59f9474ec84))
+
 ## [0.2.2](https://github.com/taitide-labs/scaffold/compare/v0.2.1...v0.2.2) (2026-11-24)
 
 
