@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/taitide-labs/scaffold/compare/v0.2.1...v0.2.2) (2026-11-24)
+
+
+### Bug Fixes
+
+* **template:** 精简 Rust 开发构建调试信息以降低缓存与磁盘占用 ([#16](https://github.com/taitide-labs/scaffold/issues/16)) ([639ea05](https://github.com/taitide-labs/scaffold/commit/639ea0564bacddbc05773861277aa161fae643f2))
+
 ## [0.2.1](https://github.com/taitide-labs/scaffold/compare/v0.2.0...v0.2.1) (2026-11-24)
 
 
