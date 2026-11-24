@@ -1,0 +1,12 @@
+id: no-ui-or-gateway-in-client-command
+language: rust
+severity: error
+message: "客户端切片 command.rs 必须保持纯函数输入校验与请求构建，严禁导入 ui 或 gateway"
+files:
+  - "clients/app/src/features/**/command.rs"
+ignores:
+  - "**/tests.rs"
+  - "**/tests/**/*.rs"
+rule:
+  kind: scoped_identifier
+  regex: "^crate::(ui|gateway)(::|$)"

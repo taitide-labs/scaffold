@@ -1,28 +1,32 @@
 #:schema https://mise.jdx.dev/schema/mise.json
 
 [tools]
-bun = "1.4"
-uv = "0.13"
-copier = "9.19"
-hk = "2.12"
-oxlint = "latest"
-oxfmt = "latest"
-rumdl = "0.3.3"
+bun = "1.4.5"
+uv = "0.13.9"
+copier = "9.19.1"
+hk = "2.12.0"
+oxlint = "1.94.0"
+oxfmt = "0.78.0"
+rumdl = "0.3.4"
 lychee = "0.24.2"
-typos = "1"
-gitleaks = "8"
-zizmor = "1"
+typos = "1.52.2"
+gitleaks = "8.30.1"
+zizmor = "1.32.0"
 "github:huacnlee/autocorrect" = "2.16.3"
 "github:1jehuang/mermaid-rs-renderer" = "0.3.1"
+
+[tasks.fmt]
+description = "Auto-fix documentation, formatting, and lint issues"
+run = "hk fix --all -q -n -p docs -p code -p fmt"
+
+[tasks.check]
+description = "Run all documentation, lint, type, and test checks"
+run = "hk check --all -q -n"
+
+[tasks.audit]
+description = "Audit dependencies for known vulnerabilities"
+run = "bun audit --audit-level=high"
 
 [tasks.build]
 description = "Bundle scaffold CLI artifact"
 run = "bun run build"
-
-[tasks.check]
-description = "Run all documentation, lint, test, and security audit checks"
-run = ["hk check --all --silent -n", "bun audit --audit-level=high"]
-
-[tasks.fmt]
-description = "Auto-fix documentation, formatting, and lint issues"
-run = "hk fix --all --silent -n"

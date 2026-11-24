@@ -7,7 +7,7 @@
 dist/
 [%- if stack == 'rust' %]
 target/
-.sccache/
+mutants.out/
 [%- elif stack == 'uv' %]
 .venv/
 __pycache__/

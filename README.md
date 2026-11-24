@@ -32,7 +32,6 @@ bunx @taitide/scaffold new rust my-service
 ```sh
 bunx @taitide/scaffold new rust my-service \
   --defaults \
-  --kind workspace \
   --visibility public \
   --create-remote
 ```
@@ -64,12 +63,12 @@ mise run check
 
 ### 各技术栈专有选项
 
-| 子命令 | 专有选项                         | 说明                                                                                             |
-| :----- | :------------------------------- | :----------------------------------------------------------------------------------------------- |
-| `base` | 无                               | 仅含通用治理、文档与 CI 基线，禁止传入 `--kind` 或 `--publish-registries`                        |
-| `rust` | `--kind`、`--publish-registries` | `--kind` 可选 `workspace` 或 `cli`；`--publish-registries` 仅 `--kind cli` 且非 `private` 时可用 |
-| `uv`   | `--publish-registries`           | 非 `private` 时可启用 PyPI 发布                                                                  |
-| `bun`  | `--publish-registries`           | 非 `private` 时可启用 npm 发布                                                                   |
+| 子命令 | 专有选项               | 说明                                                          |
+| :----- | :--------------------- | :------------------------------------------------------------ |
+| `base` | 无                     | 仅含通用治理、文档与 CI 基线，禁止传入 `--publish-registries` |
+| `rust` | 无                     | 统一采用前后端分离的 Rust Workspace 架构                      |
+| `uv`   | `--publish-registries` | 非 `private` 时可启用 PyPI 发布                               |
+| `bun`  | `--publish-registries` | 非 `private` 时可启用 npm 发布                                |
 
 ## 存量迁移与下游同步
 
@@ -96,11 +95,9 @@ bunx @taitide/scaffold sync
 `scaffold` 自身及生成项目的自动发版流水线依赖 GitHub App 与各包管理平台的 OIDC 信任发布机制，零长期密钥存储。
 
 1. 在仓库或组织 Secrets 中配置 GitHub App 凭证 `RELEASE_APP_CLIENT_ID` 与 `RELEASE_APP_PRIVATE_KEY`；该 App 需具备 `contents: write` 与 `pull-requests: write` 权限，使 `release-please` 与 `publish-release` 释放草稿版本后能够顺利触发下游 `sync-downstream` 流水线。
-2. 如启用 Rust CLI 的 Homebrew Tap 自动更新，另需配置具备目标 Tap 仓库写权限的 `HOMEBREW_TAP_TOKEN`。
-3. 首次启用公开包发布前，需在对应注册表完成冷启动绑定：
+2. 首次启用公开包发布前，需在对应注册表完成冷启动绑定：
    - npm：若包尚未存在，先使用一次性发布或人工创建占位包，再在 npmjs.com 包设置中添加 GitHub Actions Trusted Publisher，绑定组织、仓库与 `release.yml` 并勾选 **Allow `npm publish`**。
    - PyPI：在 pypi.org 的 Publishing 页面配置 Pending Publisher，填写包名、GitHub 组织、仓库与 `release.yml`。
-   - crates.io：先手工执行一次 `cargo publish` 创建 crate，随后在 crates.io 包设置中添加 GitHub Actions Trusted Publishing 规则，绑定仓库与 `release.yml`。
 
 ## 贡献
 

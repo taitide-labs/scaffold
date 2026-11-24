@@ -6,18 +6,12 @@ on:
   push:
     branches:
       - main
-[%- if stack == 'rust' and rust_kind == 'cli' and visibility == 'public' and publish_registries %]
-
-env:
-  NPM_SCOPE: "@taitide"
-  HOMEBREW_TAP: "taitide-labs/homebrew-tap"
-[%- endif %]
 
 permissions: {}
 
 jobs:
   release-please:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       pull-requests: write
@@ -49,34 +43,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-[%- if rust_kind == 'workspace' %]
+[%- if visibility == 'public' %]
           - target: x86_64-unknown-linux-gnu
-            runner: ubuntu-latest
+            runner: ubuntu-24.04
           - target: aarch64-unknown-linux-gnu
-            runner: ubuntu-latest
-            cross_linux_arm64: true
-[%- elif visibility == 'public' %]
-          - target: aarch64-apple-darwin
-            runner: macos-latest
-            ext: tar.gz
-          - target: x86_64-apple-darwin
-            runner: macos-latest
-            ext: tar.gz
-          - target: x86_64-unknown-linux-gnu
-            runner: ubuntu-latest
-            ext: tar.gz
-          - target: aarch64-unknown-linux-gnu
-            runner: ubuntu-latest
-            ext: tar.gz
-            cross_linux_arm64: true
-          - target: x86_64-pc-windows-msvc
-            runner: windows-latest
-            ext: zip
+            runner: ubuntu-24.04-arm
 [%- else %]
-          - target: aarch64-apple-darwin
-            runner: macos-latest
           - target: x86_64-unknown-linux-gnu
-            runner: ubuntu-latest
+            runner: ubuntu-24.04
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-24.04
+            cross_linux_arm64: true
 [%- endif %]
     runs-on: ${{ matrix.runner }}
     permissions:
@@ -92,306 +69,65 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           key: ${{ matrix.target }}
-[%- if rust_kind == 'workspace' or visibility == 'public' %]
+          cache-targets: false
+[%- if visibility == 'private' %]
       - name: Install aarch64 Linux cross-linker
         if: ${{ matrix.cross_linux_arm64 }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
+          sudo apt-get install --no-install-recommends -y gcc-aarch64-linux-gnu
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
+        if: ${{ !matrix.cross_linux_arm64 }}
+        with:
+          install: false
+      - name: Install cargo-nextest
+        if: ${{ !matrix.cross_linux_arm64 }}
+        shell: bash
+        run: mise install "github:nextest-rs/nextest"
       - name: Run tests
         if: ${{ !matrix.cross_linux_arm64 }}
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
-[%- if rust_kind == 'workspace' %]
-        run: cargo test --workspace --locked --target "$TARGET"
+        run: mise x -- cargo nextest run --workspace --locked --no-tests=pass --target "$TARGET"
 [%- else %]
-        run: cargo test --locked --target "$TARGET"
-[%- endif %]
-[%- else %]
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
+        with:
+          install: false
+      - name: Install cargo-nextest
+        shell: bash
+        run: mise install "github:nextest-rs/nextest"
       - name: Run tests
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
-        run: cargo test --locked --target "$TARGET"
+        run: mise x -- cargo nextest run --workspace --locked --no-tests=pass --target "$TARGET"
 [%- endif %]
       - name: Build and package binary
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
-[%- if rust_kind == 'cli' and visibility == 'public' %]
-          EXT: ${{ matrix.ext }}
-[%- endif %]
-[%- if rust_kind == 'workspace' or visibility == 'public' %]
+[%- if visibility == 'private' %]
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
 [%- endif %]
         run: |
           meta=$(cargo metadata --no-deps --format-version 1)
           bin_entry=$(echo "$meta" | jq -c '[.packages[] | . as $p | .targets[] | select(.kind | index("bin")) | {pkg: $p.name, bin: .name}][0]')
-          pkg_name=$(echo "$bin_entry" | jq -r '.pkg')
-          bin_name=$(echo "$bin_entry" | jq -r '.bin')
+          pkg_name=$(echo "$bin_entry" | jq -r '.pkg' | tr -d '\r')
+          bin_name=$(echo "$bin_entry" | jq -r '.bin' | tr -d '\r')
           cargo build --release --locked --target "$TARGET" --bin "$bin_name"
           mkdir -p dist
-[%- if rust_kind == 'cli' and visibility == 'public' %]
-          if [ "$EXT" = "zip" ]; then
-            7z a "dist/${pkg_name}-${TARGET}.zip" "./target/${TARGET}/release/${bin_name}.exe"
-          else
-            tar -C "target/${TARGET}/release" -czf "dist/${pkg_name}-${TARGET}.tar.gz" "$bin_name"
-          fi
-[%- else %]
           tar -C "target/${TARGET}/release" -czf "dist/${pkg_name}-${TARGET}.tar.gz" "$bin_name"
-[%- endif %]
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dist-${{ matrix.target }}
           path: dist/*
-
-[%- if rust_kind == 'cli' and visibility == 'public' and publish_registries %]
-
-  stage-assets:
-    needs: [release-please, build]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-      attestations: write
-    steps:
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          pattern: dist-*
-          path: artifacts
-          merge-multiple: true
-      - name: Generate checksums
-        run: |
-          cd artifacts
-          sha256sum *.tar.gz *.zip > SHA256SUMS.txt
-      - name: Attest build provenance
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
-        with:
-          subject-path: |
-            artifacts/*.tar.gz
-            artifacts/*.zip
-      - name: Upload draft release assets
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-          TAG: ${{ needs.release-please.outputs.tag_name }}
-        run: gh release upload "$TAG" artifacts/* --clobber
-
-  publish-crates:
-    needs: [release-please, stage-assets]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
-        id: auth
-      - name: Publish to crates.io
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
-        run: cargo publish --locked
-
-  publish-release:
-    needs: [release-please, stage-assets, publish-crates]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Publish GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-          TAG: ${{ needs.release-please.outputs.tag_name }}
-        run: gh release edit "$TAG" --draft=false
-
-  publish-npm:
-    needs: [release-please, publish-release]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: "lts/*"
-          registry-url: "https://registry.npmjs.org"
-          package-manager-cache: false
-      - name: Build and publish npm wrapper
-        env:
-          TAG: ${{ needs.release-please.outputs.tag_name }}
-          REPO: ${{ github.repository }}
-        run: |
-          version="${TAG#v}"
-          meta=$(cargo metadata --no-deps --format-version 1)
-          pkg_name=$(echo "$meta" | jq -r '.packages[0].name')
-          pkg_desc=$(echo "$meta" | jq -r '.packages[0].description')
-          pkg_license=$(echo "$meta" | jq -r '.packages[0].license')
-          pkg_repo=$(echo "$meta" | jq -r '.packages[0].repository')
-
-          mkdir -p npm-pkg/bin
-          jq -n \
-            --arg name "${NPM_SCOPE}/${pkg_name}" \
-            --arg version "$version" \
-            --arg desc "$pkg_desc" \
-            --arg license "$pkg_license" \
-            --arg repo "${pkg_repo}.git" \
-            --arg bin "$pkg_name" \
-            '{
-              name: $name,
-              version: $version,
-              description: $desc,
-              license: $license,
-              repository: { type: "git", url: $repo },
-              bin: { ($bin): ("bin/" + $bin + ".js") },
-              scripts: { postinstall: "node install.js" }
-            }' > npm-pkg/package.json
-
-          cat > "npm-pkg/bin/${pkg_name}.js" <<EOF
-          #!/usr/bin/env node
-          const { spawnSync } = require("child_process");
-          const path = require("path");
-          const bin = path.join(__dirname, process.platform === "win32" ? "${pkg_name}.exe" : "${pkg_name}");
-          const res = spawnSync(bin, process.argv.slice(2), { stdio: "inherit" });
-          process.exit(res.status ?? 1);
-          EOF
-
-          cat > npm-pkg/install.js <<EOF
-          const https = require("https");
-          const fs = require("fs");
-          const path = require("path");
-          const { execSync } = require("child_process");
-          const pkg = require("./package.json");
-          const map = {
-            "darwin-arm64": "aarch64-apple-darwin.tar.gz",
-            "darwin-x64": "x86_64-apple-darwin.tar.gz",
-            "linux-x64": "x86_64-unknown-linux-gnu.tar.gz",
-            "linux-arm64": "aarch64-unknown-linux-gnu.tar.gz",
-            "win32-x64": "x86_64-pc-windows-msvc.zip"
-          };
-          const suffix = map[\`\${process.platform}-\${process.arch}\`];
-          if (!suffix) throw new Error(\`Unsupported platform: \${process.platform}-\${process.arch}\`);
-          const url = \`https://github.com/${REPO}/releases/download/v\${pkg.version}/${pkg_name}-\${suffix}\`;
-          const out = path.join(__dirname, "bin", suffix);
-          function download(u, cb) {
-            https.get(u, (res) => {
-              if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-                return download(res.headers.location, cb);
-              }
-              if (res.statusCode !== 200) return cb(new Error(\`HTTP \${res.statusCode}\`));
-              const file = fs.createWriteStream(out);
-              res.pipe(file).on("finish", () => file.close(cb));
-            }).on("error", cb);
-          }
-          download(url, (err) => {
-            if (err) throw err;
-            if (suffix.endsWith(".zip")) {
-              execSync(\`powershell -Command "Expand-Archive -Force '\${out}' '\${path.join(__dirname, "bin")}'"\`);
-            } else {
-              execSync(\`tar -xzf "\${out}" -C "\${path.join(__dirname, "bin")}"\`);
-            }
-            fs.unlinkSync(out);
-          });
-          EOF
-
-          npm publish --provenance --access public ./npm-pkg
-
-  publish-homebrew:
-    needs: [release-please, publish-release]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          pattern: dist-*
-          path: artifacts
-          merge-multiple: true
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: ${{ env.HOMEBREW_TAP }}
-          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          path: tap
-          persist-credentials: false
-      - name: Update Homebrew formula
-        env:
-          TAG: ${{ needs.release-please.outputs.tag_name }}
-          REPO: ${{ github.repository }}
-          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-        run: |
-          version="${TAG#v}"
-          meta=$(cargo metadata --no-deps --format-version 1)
-          pkg_name=$(echo "$meta" | jq -r '.packages[0].name')
-          pkg_desc=$(echo "$meta" | jq -r '.packages[0].description')
-          pkg_license=$(echo "$meta" | jq -r '.packages[0].license')
-          pkg_home=$(echo "$meta" | jq -r '.packages[0].homepage // .packages[0].repository')
-          formula_class=$(echo "$pkg_name" | awk -F'[-_]' '{for(i=1;i<=NF;i++) printf toupper(substr($i,1,1)) substr($i,2)}')
-
-          sha_mac_arm=$(sha256sum "artifacts/${pkg_name}-aarch64-apple-darwin.tar.gz" | awk '{print $1}')
-          sha_mac_x64=$(sha256sum "artifacts/${pkg_name}-x86_64-apple-darwin.tar.gz" | awk '{print $1}')
-          sha_lin_x64=$(sha256sum "artifacts/${pkg_name}-x86_64-unknown-linux-gnu.tar.gz" | awk '{print $1}')
-          sha_lin_arm=$(sha256sum "artifacts/${pkg_name}-aarch64-unknown-linux-gnu.tar.gz" | awk '{print $1}')
-
-          mkdir -p tap/Formula
-          cat > "tap/Formula/${pkg_name}.rb" <<EOF
-          class ${formula_class} < Formula
-            desc "${pkg_desc}"
-            homepage "${pkg_home}"
-            version "${version}"
-            license "${pkg_license}"
-
-            on_macos do
-              on_arm do
-                url "https://github.com/${REPO}/releases/download/${TAG}/${pkg_name}-aarch64-apple-darwin.tar.gz"
-                sha256 "${sha_mac_arm}"
-              end
-              on_intel do
-                url "https://github.com/${REPO}/releases/download/${TAG}/${pkg_name}-x86_64-apple-darwin.tar.gz"
-                sha256 "${sha_mac_x64}"
-              end
-            end
-
-            on_linux do
-              on_arm do
-                url "https://github.com/${REPO}/releases/download/${TAG}/${pkg_name}-aarch64-unknown-linux-gnu.tar.gz"
-                sha256 "${sha_lin_arm}"
-              end
-              on_intel do
-                url "https://github.com/${REPO}/releases/download/${TAG}/${pkg_name}-x86_64-unknown-linux-gnu.tar.gz"
-                sha256 "${sha_lin_x64}"
-              end
-            end
-
-            def install
-              bin.install "${pkg_name}"
-            end
-
-            test do
-              assert_match version.to_s, shell_output("#{bin}/${pkg_name} --version")
-            end
-          end
-          EOF
-
-          cd tap
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "Formula/${pkg_name}.rb"
-          git commit -m "${pkg_name} ${version}"
-          git push "https://x-access-token:${TAP_TOKEN}@github.com/${HOMEBREW_TAP}.git" HEAD
-[%- else %]
+          if-no-files-found: error
 
   upload-assets:
     needs: [release-please, build]
-    runs-on: ubuntu-latest
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       id-token: write
@@ -407,20 +143,14 @@ jobs:
       - name: Generate checksums
         run: |
           cd artifacts
-[%- if rust_kind == 'cli' and visibility == 'public' %]
-          sha256sum *.tar.gz *.zip > SHA256SUMS.txt
-[%- else %]
-          sha256sum *.tar.gz > SHA256SUMS.txt
-[%- endif %]
+          sha256sum -- * > SHA256SUMS.txt
 [%- if visibility == 'public' %]
       - name: Attest build provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: |
-            artifacts/*.tar.gz
-[%- if rust_kind == 'cli' %]
-            artifacts/*.zip
-[%- endif %]
+            artifacts/*
+            !artifacts/SHA256SUMS.txt
 [%- endif %]
       - name: Upload release assets and publish
         env:
@@ -430,22 +160,23 @@ jobs:
         run: |
           gh release upload "$TAG" artifacts/* --clobber
           gh release edit "$TAG" --draft=false
-[%- endif %]
 [%- elif stack == 'uv' %]
 
   build:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
-          install: true
+          install: false
+      - name: Install uv
+        run: mise install uv
       - name: Sync, test, and build distributions
         run: |
           mise x -- uv sync --locked
@@ -455,11 +186,13 @@ jobs:
         with:
           name: dist
           path: dist/*
+          if-no-files-found: error
 [%- if visibility == 'public' and publish_registries %]
 
   stage-assets:
     needs: [release-please, build]
-    runs-on: ubuntu-latest
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       id-token: write
@@ -472,13 +205,13 @@ jobs:
       - name: Generate checksums
         run: |
           cd artifacts
-          sha256sum * > SHA256SUMS.txt
+          sha256sum -- * > SHA256SUMS.txt
       - name: Attest build provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: |
-            artifacts/*.whl
-            artifacts/*.tar.gz
+            artifacts/*
+            !artifacts/SHA256SUMS.txt
       - name: Upload draft release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -488,7 +221,7 @@ jobs:
 
   publish-pypi:
     needs: [release-please, stage-assets]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       id-token: write
@@ -496,9 +229,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
-          install: true
+          install: false
+      - name: Install uv
+        run: mise install uv
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dist
@@ -508,7 +243,7 @@ jobs:
 
   publish-release:
     needs: [release-please, stage-assets, publish-pypi]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
@@ -522,7 +257,8 @@ jobs:
 
   upload-assets:
     needs: [release-please, build]
-    runs-on: ubuntu-latest
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       id-token: write
@@ -537,14 +273,14 @@ jobs:
       - name: Generate checksums
         run: |
           cd artifacts
-          sha256sum * > SHA256SUMS.txt
+          sha256sum -- * > SHA256SUMS.txt
 [%- if visibility == 'public' %]
       - name: Attest build provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: |
-            artifacts/*.whl
-            artifacts/*.tar.gz
+            artifacts/*
+            !artifacts/SHA256SUMS.txt
 [%- endif %]
       - name: Upload release assets and publish
         env:
@@ -560,16 +296,18 @@ jobs:
   build:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
-          install: true
+          install: false
+      - name: Install bun
+        run: mise install bun
       - name: Install, test, and build
         run: |
           mise x -- bun install --frozen-lockfile
@@ -586,11 +324,13 @@ jobs:
         with:
           name: dist
           path: artifacts/*.tar.gz
+          if-no-files-found: error
 [%- if visibility == 'public' and publish_registries %]
 
   stage-assets:
     needs: [release-please, build]
-    runs-on: ubuntu-latest
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       id-token: write
@@ -603,11 +343,13 @@ jobs:
       - name: Generate checksums
         run: |
           cd artifacts
-          sha256sum *.tar.gz > SHA256SUMS.txt
+          sha256sum -- * > SHA256SUMS.txt
       - name: Attest build provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          subject-path: "artifacts/*.tar.gz"
+          subject-path: |
+            artifacts/*
+            !artifacts/SHA256SUMS.txt
       - name: Upload draft release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -617,7 +359,7 @@ jobs:
 
   publish-npm:
     needs: [release-please, stage-assets]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       id-token: write
@@ -625,9 +367,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
-          install: true
+          install: false
+      - name: Install bun
+        run: mise install bun
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "lts/*"
@@ -642,7 +386,7 @@ jobs:
 
   publish-release:
     needs: [release-please, stage-assets, publish-npm]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
@@ -656,7 +400,8 @@ jobs:
 
   upload-assets:
     needs: [release-please, build]
-    runs-on: ubuntu-latest
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       id-token: write
@@ -671,12 +416,14 @@ jobs:
       - name: Generate checksums
         run: |
           cd artifacts
-          sha256sum *.tar.gz > SHA256SUMS.txt
+          sha256sum -- * > SHA256SUMS.txt
 [%- if visibility == 'public' %]
       - name: Attest build provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          subject-path: "artifacts/*.tar.gz"
+          subject-path: |
+            artifacts/*
+            !artifacts/SHA256SUMS.txt
 [%- endif %]
       - name: Upload release assets and publish
         env:

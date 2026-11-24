@@ -23,9 +23,6 @@ function appendTemplateDataFlags(
     target.push("-d", `description=${command.description}`);
   }
   target.push("-d", `stack=${command.stack}`);
-  if (command.rustKind !== undefined) {
-    target.push("-d", `rust_kind=${command.rustKind}`);
-  }
   if (command.visibility !== undefined) {
     target.push("-d", `visibility=${command.visibility}`);
   }

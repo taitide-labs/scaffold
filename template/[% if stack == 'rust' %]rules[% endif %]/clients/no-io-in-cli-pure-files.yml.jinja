@@ -1,0 +1,16 @@
+id: no-io-in-cli-pure-files
+language: rust
+severity: error
+message: "CLI 切片的 args.rs 与 render.rs 必须保持纯函数，严禁引入 tokio、文件系统、子进程或 gateway 副作用"
+files:
+  - "clients/cli/src/commands/**/args.rs"
+  - "clients/cli/src/commands/**/render.rs"
+ignores:
+  - "**/tests.rs"
+  - "**/tests/**/*.rs"
+rule:
+  any:
+    - kind: scoped_identifier
+      regex: "^(tokio|std::fs|std::process|crate::gateway|[[ package_module ]]_gateway)(::|$)"
+    - kind: use_declaration
+      regex: "^use (tokio|std::fs|std::process|crate::gateway|[[ package_module ]]_gateway)"

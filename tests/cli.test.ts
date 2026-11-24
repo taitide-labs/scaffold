@@ -65,20 +65,18 @@ describe("parseScaffoldArgs", () => {
     expect(parseScaffoldArgs(["new", "rust", "--version"])).toEqual({ kind: "version" });
   });
 
-  test("parses new rust with explicit options", () => {
-    const parsed = parseScaffoldArgs([
+  test("parses new rust and uv with explicit options", () => {
+    const parsedRust = parseScaffoldArgs([
       "new",
       "rust",
-      "apps/demo-cli",
+      "apps/demo-ws",
       "--name",
-      "demo-cli",
-      "--description=Demo CLI tool",
-      "--kind=cli",
+      "demo-ws",
+      "--description=Demo workspace",
       "--visibility",
       "public",
       "--org",
       "taitide-labs",
-      "--publish-registries",
       "--create-remote",
       "--template",
       "/tmp/local-template",
@@ -87,21 +85,45 @@ describe("parseScaffoldArgs", () => {
       "-q",
     ]);
 
-    expect(parsed).toEqual({
+    expect(parsedRust).toEqual({
       kind: "new",
       stack: "rust",
-      dir: "apps/demo-cli",
-      name: "demo-cli",
-      description: "Demo CLI tool",
-      rustKind: "cli",
+      dir: "apps/demo-ws",
+      name: "demo-ws",
+      description: "Demo workspace",
       visibility: "public",
       org: "taitide-labs",
-      publishRegistries: true,
+      publishRegistries: false,
       createRemote: true,
       template: "/tmp/local-template",
       defaults: true,
       dryRun: true,
       quiet: true,
+    });
+
+    const parsedUv = parseScaffoldArgs([
+      "new",
+      "uv",
+      "apps/demo-py",
+      "--visibility",
+      "public",
+      "--publish-registries",
+    ]);
+
+    expect(parsedUv).toEqual({
+      kind: "new",
+      stack: "uv",
+      dir: "apps/demo-py",
+      name: undefined,
+      description: undefined,
+      visibility: "public",
+      org: undefined,
+      publishRegistries: true,
+      createRemote: false,
+      template: "https://github.com/taitide-labs/scaffold.git",
+      defaults: false,
+      dryRun: false,
+      quiet: false,
     });
   });
 
@@ -161,6 +183,16 @@ describe("parseScaffoldArgs", () => {
       message: "unknown option: --publish-registries",
       helpCommand: "scaffold new base",
     });
+    expect(parseScaffoldArgs(["new", "rust", "app", "--kind", "workspace"])).toEqual({
+      kind: "error",
+      message: "unknown option: --kind",
+      helpCommand: "scaffold new rust",
+    });
+    expect(parseScaffoldArgs(["new", "rust", "app", "--publish-registries"])).toEqual({
+      kind: "error",
+      message: "unknown option: --publish-registries",
+      helpCommand: "scaffold new rust",
+    });
     expect(parseScaffoldArgs(["new", "uv", "app", "--kind", "cli"])).toEqual({
       kind: "error",
       message: "unknown option: --kind",
@@ -181,14 +213,6 @@ describe("parseScaffoldArgs", () => {
       message: "unknown option: --rust-kind",
       helpCommand: "scaffold new rust",
     });
-    expect(parseScaffoldArgs(["new", "rust", "app", "--publish-registries"])).toEqual({
-      kind: "error",
-      message: "--publish-registries requires --kind cli for rust",
-      helpCommand: "scaffold new rust",
-    });
-    expect(
-      parseScaffoldArgs(["new", "rust", "app", "--kind", "workspace", "--publish-registries"]).kind,
-    ).toBe("error");
     expect(
       parseScaffoldArgs(["new", "uv", "app", "--visibility", "private", "--publish-registries"])
         .kind,
@@ -201,7 +225,6 @@ describe("parseScaffoldArgs", () => {
     expect(parseScaffoldArgs(["new", "base", "my-app", "--name", "bad_name"]).kind).toBe("error");
     expect(parseScaffoldArgs(["new", "base", "BadDir", "--defaults"], "/tmp").kind).toBe("error");
     expect(parseScaffoldArgs(["adopt", "base", "--defaults"], "/tmp/BadDir").kind).toBe("error");
-    expect(parseScaffoldArgs(["new", "rust", "my-app", "--kind", "lib"]).kind).toBe("error");
     expect(parseScaffoldArgs(["new", "base", "my-app", "--visibility", "internal"]).kind).toBe(
       "error",
     );
@@ -235,7 +258,6 @@ describe("parseScaffoldArgs", () => {
       dir: ".",
       name: undefined,
       description: undefined,
-      rustKind: undefined,
       visibility: undefined,
       org: undefined,
       publishRegistries: false,
@@ -273,15 +295,8 @@ describe("buildCopierArgs", () => {
     ]);
   });
 
-  test("builds copier copy args for new rust kitcode --kind cli --publish-registries", () => {
-    const parsed = parseScaffoldArgs([
-      "new",
-      "rust",
-      "kitcode",
-      "--kind",
-      "cli",
-      "--publish-registries",
-    ]);
+  test("builds copier copy args for new bun kitcode --publish-registries", () => {
+    const parsed = parseScaffoldArgs(["new", "bun", "kitcode", "--publish-registries"]);
     expect(parsed.kind).toBe("new");
     if (parsed.kind !== "new") {
       return;
@@ -291,9 +306,7 @@ describe("buildCopierArgs", () => {
       "copy",
       "--trust",
       "-d",
-      "stack=rust",
-      "-d",
-      "rust_kind=cli",
+      "stack=bun",
       "-d",
       "publish_registries=true",
       "https://github.com/taitide-labs/scaffold.git",
@@ -381,8 +394,8 @@ describe("runMain", () => {
 
     const rustHelp = createTestIo();
     expect(await runMain(["new", "rust", "--help"], rustHelp.io)).toBe(0);
-    expect(rustHelp.stdout.join("")).toContain("--kind");
-    expect(rustHelp.stdout.join("")).toContain("--publish-registries");
+    expect(rustHelp.stdout.join("")).not.toContain("--kind");
+    expect(rustHelp.stdout.join("")).not.toContain("--publish-registries");
     expect(rustHelp.stdout.join("")).toContain("--create-remote");
   });
 

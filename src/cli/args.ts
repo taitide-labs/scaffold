@@ -4,7 +4,6 @@ export const DEFAULT_TEMPLATE = "https://github.com/taitide-labs/scaffold.git";
 export const PROJECT_NAME_PATTERN = /^[a-z][a-z0-9-]*$/;
 
 export type Stack = "base" | "rust" | "uv" | "bun";
-export type RustKind = "workspace" | "cli";
 export type Visibility = "public" | "private";
 export type Subcommand = "new" | "sync" | "adopt";
 
@@ -20,7 +19,6 @@ export interface NewCommand extends SharedFlags {
   dir: string;
   name?: string;
   description?: string;
-  rustKind?: RustKind;
   visibility?: Visibility;
   org?: string;
   publishRegistries: boolean;
@@ -34,7 +32,6 @@ export interface AdoptCommand extends SharedFlags {
   dir: string;
   name?: string;
   description?: string;
-  rustKind?: RustKind;
   visibility?: Visibility;
   org?: string;
   publishRegistries: boolean;
@@ -55,7 +52,6 @@ export type ParsedCommand =
   | CopierCommand;
 
 const STACKS: ReadonlySet<string> = new Set(["base", "rust", "uv", "bun"]);
-const RUST_KINDS: ReadonlySet<string> = new Set(["workspace", "cli"]);
 const VISIBILITIES: ReadonlySet<string> = new Set(["public", "private"]);
 
 function isSubcommand(value: string): value is Subcommand {
@@ -64,10 +60,6 @@ function isSubcommand(value: string): value is Subcommand {
 
 function isStack(value: string): value is Stack {
   return STACKS.has(value);
-}
-
-function isRustKind(value: string): value is RustKind {
-  return RUST_KINDS.has(value);
 }
 
 function isVisibility(value: string): value is Visibility {
@@ -211,7 +203,6 @@ function parseStackCommandArgs(
   let dir: string | undefined;
   let name: string | undefined;
   let description: string | undefined;
-  let rustKind: RustKind | undefined;
   let visibility: Visibility | undefined;
   let org: string | undefined;
   let publishRegistries = false;
@@ -253,7 +244,7 @@ function parseStackCommandArgs(
         continue;
       }
       if (flag === "--publish-registries") {
-        if (stack === "base") {
+        if (stack === "base" || stack === "rust") {
           return { kind: "error", message: `unknown option: ${flag}`, helpCommand };
         }
         if (inlineValue !== undefined) {
@@ -270,25 +261,6 @@ function parseStackCommandArgs(
           return { kind: "error", message: `option ${flag} does not take a value`, helpCommand };
         }
         createRemote = true;
-        continue;
-      }
-      if (flag === "--kind") {
-        if (stack !== "rust") {
-          return { kind: "error", message: `unknown option: ${flag}`, helpCommand };
-        }
-        const read = consumeFlagValue(rest, i, flag, inlineValue);
-        if (!read.ok) {
-          return { kind: "error", message: read.message, helpCommand };
-        }
-        i = read.nextIndex;
-        if (!isRustKind(read.value)) {
-          return {
-            kind: "error",
-            message: `invalid --kind "${read.value}": expected workspace or cli`,
-            helpCommand,
-          };
-        }
-        rustKind = read.value;
         continue;
       }
 
@@ -362,21 +334,12 @@ function parseStackCommandArgs(
 
   const targetDir = dir ?? ".";
 
-  if (publishRegistries) {
-    if (visibility === "private") {
-      return {
-        kind: "error",
-        message: "--publish-registries is not supported with --visibility private",
-        helpCommand,
-      };
-    }
-    if (stack === "rust" && rustKind !== "cli") {
-      return {
-        kind: "error",
-        message: "--publish-registries requires --kind cli for rust",
-        helpCommand,
-      };
-    }
+  if (publishRegistries && visibility === "private") {
+    return {
+      kind: "error",
+      message: "--publish-registries is not supported with --visibility private",
+      helpCommand,
+    };
   }
 
   if (defaults && name === undefined) {
@@ -396,7 +359,6 @@ function parseStackCommandArgs(
     dir: targetDir,
     name,
     description,
-    rustKind,
     visibility,
     org,
     publishRegistries,
