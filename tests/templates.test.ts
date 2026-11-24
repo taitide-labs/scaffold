@@ -248,7 +248,7 @@ describe("template matrix rendering", () => {
 
         const agentsMd = readFileSync(path.join(tempDir, "AGENTS.md"), "utf8");
         expect(agentsMd).toContain("[CONTRIBUTING.md](CONTRIBUTING.md)");
-        expect(agentsMd).toContain("[docs/development_rules.md](docs/development_rules.md)");
+        expect(agentsMd).toContain("[development_rules.md](docs/development_rules.md)");
 
         const contributingMd = readFileSync(path.join(tempDir, "CONTRIBUTING.md"), "utf8");
         expect(contributingMd).toContain("## Commit 与版本规范");
@@ -256,6 +256,7 @@ describe("template matrix rendering", () => {
         expect(contributingMd).not.toContain("pre-push");
 
         const devRulesMd = readFileSync(path.join(tempDir, "docs/development_rules.md"), "utf8");
+        expect(devRulesMd).toContain("context-map.md");
         expect(devRulesMd).toContain("mise tasks");
         if (variant.stack === "rust") {
           expect(devRulesMd).toContain("`rules/`");

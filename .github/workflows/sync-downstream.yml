@@ -29,6 +29,7 @@ jobs:
           owner: ${{ github.repository_owner }} # zizmor: ignore[github-app]
           permission-contents: write
           permission-pull-requests: write
+          permission-workflows: write
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -95,7 +96,8 @@ jobs:
               branch="chore/sync-scaffold"
               git checkout -B "$branch"
 
-              if ! mise x -C "$SCAFFOLD_WORKSPACE" -- copier update --trust --defaults --conflict=rej --quiet "$target"; then
+              copier_bin=$(mise -C "$SCAFFOLD_WORKSPACE" which copier)
+              if ! "$copier_bin" update --trust --defaults --conflict=rej --quiet "$target"; then
                 echo "copier update failed for ${repo}, skipping"
                 exit 0
               fi
@@ -114,7 +116,10 @@ jobs:
 
               git add -A
               git commit -m "chore(infra): 同步 scaffold 模板更新"
-              git push -f origin "$branch"
+              if ! git push -f origin "$branch"; then
+                echo "failed to push ${repo}, skipping"
+                exit 0
+              fi
 
               existing=$(gh pr list --repo "$repo" --head "$branch" --state open --json number --jq '.[0].number // empty')
               if [ -z "$existing" ]; then

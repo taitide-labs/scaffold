@@ -1,1 +1,1 @@
-- 开发与提交前必须阅读并遵循 [CONTRIBUTING.md](CONTRIBUTING.md) 与 [docs/development_rules.md](docs/development_rules.md)。
+- 开发与提交前必须阅读并遵循 [CONTRIBUTING.md](CONTRIBUTING.md) 与 [development_rules.md](docs/development_rules.md)。
