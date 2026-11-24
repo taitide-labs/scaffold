@@ -308,6 +308,11 @@ describe("template matrix rendering", () => {
           expect(clippyToml).toContain("std::time::SystemTime::now");
           expect(clippyToml).not.toContain('"f32"');
 
+          const cargoToml = readFileSync(path.join(tempDir, "Cargo.toml"), "utf8");
+          expect(cargoToml).toContain('debug = "line-tables-only"');
+          expect(cargoToml).toContain('[profile.dev.package."*"]');
+          expect(cargoToml).toContain("debug = false");
+
           const crossSliceRule = readFileSync(
             path.join(tempDir, "rules/backend/no-cross-slice-imports.yml"),
             "utf8",
