@@ -1,49 +1,27 @@
 #:schema https://mise.jdx.dev/schema/mise.json
 
 [tools]
-hk = "2.12"
-rumdl = "0.3.3"
+hk = "2.12.0"
+rumdl = "0.3.4"
 lychee = "0.24.2"
-typos = "1"
-gitleaks = "8"
-zizmor = "1"
+typos = "1.52.2"
+gitleaks = "8.30.1"
+zizmor = "1.32.0"
 "github:huacnlee/autocorrect" = "2.16.3"
 "github:1jehuang/mermaid-rs-renderer" = "0.3.1"
 [%- if stack == 'rust' %]
 cargo-deny = "0.20.2"
 ast-grep = "0.51.3"
-sccache = "0.19.0"
-"github:nextest-rs/nextest" = "cargo-nextest-0.9.152"
+"github:nextest-rs/nextest" = { version = "0.9.152", version_prefix = "cargo-nextest-" }
 [%- elif stack == 'uv' %]
-uv = "0.13"
-ruff = "latest"
-ty = "latest"
-osv-scanner = "latest"
+uv = "0.13.9"
+ruff = "0.17.6"
+ty = "0.0.108"
+osv-scanner = "2.7.1"
 [%- elif stack == 'bun' %]
-bun = "1.4"
-oxlint = "latest"
-oxfmt = "latest"
-[%- endif %]
-[%- if stack == 'bun' %]
-
-[tasks.build]
-description = "Build bundle"
-run = "bun run build"
-[%- endif %]
-
-[tasks.check]
-[%- if stack == 'rust' %]
-description = "Run all documentation, formatting, ast-grep, clippy, test, and dependency audit checks"
-run = ["hk check --all --silent -n", "cargo deny check"]
-[%- elif stack == 'uv' %]
-description = "Run all documentation, lint, test, and dependency audit checks"
-run = ["hk check --all --silent -n", "osv-scanner scan source --lockfile=uv.lock"]
-[%- elif stack == 'bun' %]
-description = "Run all documentation, lint, test, and dependency audit checks"
-run = ["hk check --all --silent -n", "bun audit --audit-level=high"]
-[%- else %]
-description = "Run all documentation, spelling, and workflow checks"
-run = "hk check --all --silent -n"
+bun = "1.4.5"
+oxlint = "1.94.0"
+oxfmt = "0.78.0"
 [%- endif %]
 
 [tasks.fmt]
@@ -52,4 +30,36 @@ description = "Auto-fix documentation formatting and typography"
 [%- else %]
 description = "Auto-fix documentation formatting, typography, and code formatting"
 [%- endif %]
-run = "hk fix --all --silent -n"
+run = "hk fix --all -q -n -p docs -p code -p fmt"
+
+[tasks.check]
+[%- if stack == 'rust' %]
+description = "Run all documentation, formatting, ast-grep, clippy, and test checks"
+[%- elif stack == 'uv' %]
+description = "Run all documentation, lint, type, and test checks"
+[%- elif stack == 'bun' %]
+description = "Run all documentation, lint, type, and test checks"
+[%- else %]
+description = "Run all documentation, spelling, and workflow checks"
+[%- endif %]
+run = "hk check --all -q -n"
+[%- if stack != 'base' %]
+
+[tasks.audit]
+[%- if stack == 'rust' %]
+description = "Audit dependencies for vulnerabilities and license compliance"
+run = "cargo deny check"
+[%- elif stack == 'uv' %]
+description = "Audit dependencies for known vulnerabilities"
+run = "osv-scanner scan source --lockfile=uv.lock"
+[%- elif stack == 'bun' %]
+description = "Audit dependencies for known vulnerabilities"
+run = "bun audit --audit-level=high"
+[%- endif %]
+[%- endif %]
+[%- if stack == 'bun' %]
+
+[tasks.build]
+description = "Build bundle"
+run = "bun run build"
+[%- endif %]

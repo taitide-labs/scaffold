@@ -33,15 +33,6 @@ stack:
     - base
   default: rust
 
-rust_kind:
-  type: str
-  help: Rust project layout
-  choices:
-    - workspace
-    - cli
-  default: workspace
-  when: "[[ stack == 'rust' ]]"
-
 visibility:
   type: str
   help: Repository visibility
@@ -59,7 +50,7 @@ publish_registries:
   type: bool
   help: Publish package to public registries on release
   default: false
-  when: "[[ visibility == 'public' and (stack in ['uv', 'bun'] or (stack == 'rust' and rust_kind == 'cli')) ]]"
+  when: "[[ visibility == 'public' and stack in ['uv', 'bun'] ]]"
 
 create_remote_repo:
   type: bool

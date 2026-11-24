@@ -1,0 +1,12 @@
+id: no-cli-cross-command-imports
+language: rust
+severity: error
+message: "CLI 命令切片禁止跨切片互引或反向导入 app 组合根，共享逻辑应当下沉至 output 或公共模块"
+files:
+  - "clients/cli/src/commands/**/*.rs"
+ignores:
+  - "**/tests.rs"
+  - "**/tests/**/*.rs"
+rule:
+  kind: scoped_identifier
+  regex: "^crate::(app|commands)(::|$)"

@@ -7,33 +7,22 @@ interface MatrixCase {
   id: string;
   projectName: string;
   stack: "rust" | "uv" | "bun" | "base";
-  rustKind?: "workspace" | "cli";
   visibility: "public" | "private";
   publishRegistries: boolean;
 }
 
 const MATRIX: readonly MatrixCase[] = [
   {
-    id: "rust-ws-pub",
+    id: "rust-pub",
     projectName: "demo-rust-ws",
     stack: "rust",
-    rustKind: "workspace",
     visibility: "public",
     publishRegistries: false,
   },
   {
-    id: "rust-cli-pub",
-    projectName: "demo-rust-cli",
-    stack: "rust",
-    rustKind: "cli",
-    visibility: "public",
-    publishRegistries: true,
-  },
-  {
-    id: "rust-ws-priv",
+    id: "rust-priv",
     projectName: "demo-rust-priv",
     stack: "rust",
-    rustKind: "workspace",
     visibility: "private",
     publishRegistries: false,
   },
@@ -159,9 +148,6 @@ describe("template matrix rendering", () => {
           "-d",
           `visibility=${variant.visibility}`,
         );
-        if (variant.rustKind !== undefined) {
-          copierArgs.push("-d", `rust_kind=${variant.rustKind}`);
-        }
         if (variant.publishRegistries) {
           copierArgs.push("-d", "publish_registries=true");
         }
@@ -195,11 +181,15 @@ describe("template matrix rendering", () => {
         expect(answers).toContain("_src_path:");
         expect(answers).not.toContain("create_remote_repo");
         expect(answers).not.toContain("package_module");
+        expect(answers).not.toContain("rust_kind");
         expect(answers).not.toContain("# Changes here");
 
         const isPublic = variant.visibility === "public";
         expect(existsSync(path.join(tempDir, ".github/ruleset.json"))).toBe(isPublic);
-        expect(existsSync(path.join(tempDir, ".github/workflows/pr-policy.yml"))).toBe(isPublic);
+        expect(existsSync(path.join(tempDir, ".github/workflows/close-fork-prs.yml"))).toBe(
+          isPublic,
+        );
+        expect(existsSync(path.join(tempDir, ".github/workflows/pr-policy.yml"))).toBe(false);
         expect(existsSync(path.join(tempDir, ".github/ISSUE_TEMPLATE/bug_report.yml"))).toBe(
           isPublic,
         );
@@ -224,21 +214,135 @@ describe("template matrix rendering", () => {
 
         const ciYml = readFileSync(path.join(tempDir, ".github/workflows/ci.yml"), "utf8");
         expect(ciYml).toMatch(/predicate-quantifier:\s*['"]some-with-excludes['"]/);
+        expect(ciYml).toContain("group: ci-${{ github.head_ref || github.ref }}");
+        expect(ciYml).toContain("runs-on: ubuntu-24.04");
+        expect(ciYml).not.toContain("ubuntu-latest");
+        expect(ciYml).toContain("!startsWith(github.head_ref, 'release-please--')");
+        expect(ciYml).not.toContain("install_args: --locked");
+        expect(ciYml).toContain("hk check --all -q -n -p docs");
+        if (isPublic) {
+          expect(ciYml).toContain("merge_group:");
+          expect(ciYml).not.toContain("\n  push:\n");
+        } else {
+          expect(ciYml).toContain("\n  push:\n");
+          expect(ciYml).not.toContain("merge_group:");
+        }
+        if (variant.stack !== "base") {
+          expect(ciYml).toContain("hk check --all -q -n -p code");
+          expect(ciYml).toContain("mise run audit");
+        } else {
+          expect(ciYml).not.toContain("mise run audit");
+        }
+
+        const releaseYml = readFileSync(
+          path.join(tempDir, ".github/workflows/release.yml"),
+          "utf8",
+        );
+        expect(releaseYml).not.toContain("ubuntu-latest");
+        expect(securityYml).not.toContain("ubuntu-latest");
+
+        const hkPkl = readFileSync(path.join(tempDir, ".config/hk.pkl"), "utf8");
+        expect(hkPkl).toContain('profiles = List("docs", "code")');
+        expect(hkPkl).toContain('"!fmt"');
+        expect(hkPkl).not.toContain('["pre-push"]');
+
+        const agentsMd = readFileSync(path.join(tempDir, "AGENTS.md"), "utf8");
+        expect(agentsMd).toContain("[CONTRIBUTING.md](CONTRIBUTING.md)");
+        expect(agentsMd).toContain("[docs/development_rules.md](docs/development_rules.md)");
+
+        const contributingMd = readFileSync(path.join(tempDir, "CONTRIBUTING.md"), "utf8");
+        expect(contributingMd).toContain("## Commit 与版本规范");
+        expect(contributingMd).not.toContain("Feature Flag");
+        expect(contributingMd).not.toContain("pre-push");
+
+        const devRulesMd = readFileSync(path.join(tempDir, "docs/development_rules.md"), "utf8");
+        expect(devRulesMd).toContain("mise tasks");
+        if (variant.stack === "rust") {
+          expect(devRulesMd).toContain("`rules/`");
+        } else {
+          expect(devRulesMd).not.toContain("`rules/`");
+        }
+        if (isPublic) {
+          expect(devRulesMd).toContain("gh pr merge --auto --delete-branch");
+        } else {
+          expect(devRulesMd).not.toContain("gh pr merge --auto");
+        }
 
         const miseToml = readFileSync(path.join(tempDir, "mise.toml"), "utf8");
-        expect(miseToml).toContain('zizmor = "1"');
+        expect(miseToml).toContain('zizmor = "1.32.0"');
+        expect(miseToml).toContain('run = "hk fix --all -q -n -p docs -p code -p fmt"');
+        expect(miseToml).toContain('run = "hk check --all -q -n"');
+        expect(miseToml).not.toContain("sccache");
+        expect(miseToml.indexOf("[tasks.fmt]")).toBeLessThan(miseToml.indexOf("[tasks.check]"));
+        if (variant.stack !== "base") {
+          expect(miseToml.indexOf("[tasks.check]")).toBeLessThan(miseToml.indexOf("[tasks.audit]"));
+        }
         if (variant.stack === "rust") {
-          expect(miseToml).toContain("cargo deny check");
-          const releaseConfig = JSON.parse(
-            readFileSync(path.join(tempDir, "release-please-config.json"), "utf8"),
-          ) as { "release-type": string };
-          expect(releaseConfig["release-type"]).toBe(
-            variant.rustKind === "workspace" ? "simple" : "rust",
+          expect(miseToml).toContain("[tasks.audit]");
+          expect(miseToml).toContain('run = "cargo deny check"');
+          expect(miseToml).toContain('version_prefix = "cargo-nextest-"');
+          expect(existsSync(path.join(tempDir, ".cargo/mutants.toml"))).toBe(true);
+          expect(existsSync(path.join(tempDir, "backend/runtime/Cargo.toml"))).toBe(true);
+          expect(existsSync(path.join(tempDir, "crates"))).toBe(false);
+          expect(existsSync(path.join(tempDir, "rules/base/no-inline-tests.yml"))).toBe(true);
+          expect(existsSync(path.join(tempDir, "rules/base/no-line-comments.yml"))).toBe(true);
+          expect(existsSync(path.join(tempDir, "rules/backend/no-cross-slice-imports.yml"))).toBe(
+            true,
           );
+          expect(
+            existsSync(path.join(tempDir, "rules/backend/no-http-in-infra-and-runtime.yml")),
+          ).toBe(true);
+          expect(
+            existsSync(path.join(tempDir, "rules/clients/no-client-import-backend-internals.yml")),
+          ).toBe(true);
+          expect(existsSync(path.join(tempDir, "rules/clients/no-io-in-cli-pure-files.yml"))).toBe(
+            true,
+          );
+          expect(existsSync(path.join(tempDir, ".github/codeql/codeql-config.yml"))).toBe(isPublic);
+
+          const denyToml = readFileSync(path.join(tempDir, "deny.toml"), "utf8");
+          expect(denyToml).toContain('multiple-versions = "allow"');
+
+          const clippyToml = readFileSync(path.join(tempDir, "clippy.toml"), "utf8");
+          expect(clippyToml).toContain("std::time::SystemTime::now");
+          expect(clippyToml).not.toContain('"f32"');
+
+          const crossSliceRule = readFileSync(
+            path.join(tempDir, "rules/backend/no-cross-slice-imports.yml"),
+            "utf8",
+          );
+          expect(crossSliceRule).toContain("backend/contexts/*/features/src/**/*.rs");
+          expect(crossSliceRule).not.toContain("evt_");
+
+          const clientBackendRule = readFileSync(
+            path.join(tempDir, "rules/clients/no-client-import-backend-internals.yml"),
+            "utf8",
+          );
+          expect(clientBackendRule).toContain(variant.projectName.replaceAll("-", "_"));
+
+          expect(releaseYml).toContain("cache-targets: false");
+          if (isPublic) {
+            expect(securityYml).toContain("config-file: ./.github/codeql/codeql-config.yml");
+            expect(securityYml).toContain("cargo build --workspace --locked");
+            expect(releaseYml).toContain("ubuntu-24.04-arm");
+          } else {
+            expect(releaseYml).not.toContain("ubuntu-24.04-arm");
+          }
+
+          const releaseConfig = readFileSync(
+            path.join(tempDir, "release-please-config.json"),
+            "utf8",
+          );
+          expect(releaseConfig).toContain('"release-type": "simple"');
+          expect(releaseConfig).toContain(`${variant.projectName}-runtime`);
         } else if (variant.stack === "uv") {
+          expect(miseToml).toContain("[tasks.audit]");
           expect(miseToml).toContain("osv-scanner");
         } else if (variant.stack === "bun") {
+          expect(miseToml).toContain("[tasks.audit]");
           expect(miseToml).toContain("bun audit");
+        } else {
+          expect(miseToml).not.toContain("[tasks.audit]");
         }
 
         const gitInit = runSync(["git", "init", "-q", "-b", "main"], tempDir);
@@ -249,30 +353,15 @@ describe("template matrix rendering", () => {
         const hkValidate = runSync(["hk", "validate"], tempDir);
         expect(hkValidate.status, hkValidate.stderr).toBe(0);
 
-        const hkArgs = [
-          "hk",
-          "check",
-          "--all",
-          "--silent",
-          "-n",
-          "--step",
-          "autocorrect",
-          "--step",
-          "rumdl",
-          "--step",
-          "mmdr",
-          "--step",
-          "lychee",
-          "--step",
-          "typos",
-          "--step",
-          "zizmor",
-        ];
+        const hkDocsCheck = runSync(["hk", "check", "--all", "-q", "-n", "-p", "docs"], tempDir);
+        expect(hkDocsCheck.status, `${hkDocsCheck.stdout}\n${hkDocsCheck.stderr}`).toBe(0);
+
+        const hkCodeArgs = ["hk", "check", "--all", "-q", "-n", "--step", "zizmor"];
         if (variant.stack === "bun") {
-          hkArgs.push("--step", "oxfmt", "--step", "oxlint");
+          hkCodeArgs.push("--step", "oxfmt", "--step", "oxlint");
         }
 
-        const hkCheck = runSync(hkArgs, tempDir);
+        const hkCheck = runSync(hkCodeArgs, tempDir);
         expect(hkCheck.status, `${hkCheck.stdout}\n${hkCheck.stderr}`).toBe(0);
       } finally {
         rmSync(tempDir, { recursive: true, force: true });

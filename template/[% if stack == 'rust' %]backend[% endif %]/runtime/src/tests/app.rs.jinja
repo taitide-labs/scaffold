@@ -1,0 +1,6 @@
+use crate::app::runtime_name;
+
+#[test]
+fn runtime_name_matches_package() {
+    assert_eq!(runtime_name(), "[[ project_name ]]-runtime");
+}

@@ -1,8 +1,11 @@
 amends "package://github.com/jdx/hk/releases/download/v2.12.0/hk@2.12.0#/Config.pkl"
 import "package://github.com/jdx/hk/releases/download/v2.12.0/hk@2.12.0#/Builtins.pkl"
 
+profiles = List("docs", "code")
+
 steps {
   ["autocorrect"] {
+    profiles = List("docs")
     glob = List("*.md", "*.ts", "*.js")
     exclude = List("template/**")
     check = "autocorrect --config .config/autocorrectrc --lint {{files}}"
@@ -10,6 +13,7 @@ steps {
   }
 
   ["rumdl"] {
+    profiles = List("docs")
     glob = List("*.md")
     exclude = List("template/**")
     check = "rumdl check --config .config/rumdl.toml {{files}}"
@@ -17,26 +21,31 @@ steps {
   }
 
   ["mmdr"] {
+    profiles = List("docs", "!fmt")
     glob = List("*.md")
     exclude = List("template/**")
     check = "for f in {{files}}; do if grep -q '```mermaid' \"$f\"; then mmdr -i \"$f\" --size --fastText >/dev/null || exit 1; fi; done"
   }
 
   ["lychee"] {
+    profiles = List("docs", "!fmt")
     glob = List("*.md")
     exclude = List("template/**")
     check = "lychee --config .config/lychee.toml --offline {{files}}"
   }
 
   ["typos"] = (Builtins.typos) {
+    profiles = List("docs", "!fmt")
     exclude = List("template/**")
   }
 
   ["oxfmt"] = (Builtins.oxfmt) {
+    profiles = List("code")
     exclude = List("*.md", "template/**")
   }
 
   ["oxlint"] {
+    profiles = List("code")
     glob = List("*.ts", "*.js")
     exclude = List("template/**")
     check = "oxlint {{files}}"
@@ -44,17 +53,20 @@ steps {
   }
 
   ["zizmor"] {
+    profiles = List("code", "!fmt")
     glob = List(".github/workflows/*.yml", ".github/workflows/*.yaml")
     exclude = List("template/**")
     check = "zizmor --offline --quiet {{files}}"
   }
 
   ["typecheck"] {
+    profiles = List("code", "!fmt")
     glob = List("src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts", "tsconfig.json")
     check = "bun run typecheck"
   }
 
   ["bun_test"] {
+    profiles = List("code", "!fmt")
     glob = List("src/**/*.ts", "tests/**/*.ts", "package.json")
     check = "bun test"
   }
@@ -64,14 +76,6 @@ hooks {
   ["commit-msg"] {
     steps {
       ["conventional_commit"] = Builtins.check_conventional_commit
-    }
-  }
-
-  ["pre-push"] {
-    steps {
-      ["bun_audit"] {
-        check = "bun audit --audit-level=high"
-      }
     }
   }
 }

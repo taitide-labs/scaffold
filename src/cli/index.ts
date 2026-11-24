@@ -9,7 +9,6 @@ export type {
   CopierCommand,
   NewCommand,
   ParsedCommand,
-  RustKind,
   SharedFlags,
   Stack,
   Subcommand,
@@ -76,7 +75,7 @@ function formatStackListHelp(command: "new" | "adopt"): string {
 
 Subcommands:
   base                     Shared governance, docs, and CI baseline
-  rust                     Rust workspace or CLI project
+  rust                     Rust workspace project
   uv                       Python project managed by uv
   bun                      TypeScript CLI or package managed by Bun
 
@@ -105,18 +104,11 @@ function formatStackOptionsHelp(command: "new" | "adopt", stack: Stack): string 
     "Options:",
     "  --name <slug>            Project slug matching ^[a-z][a-z0-9-]*$",
     "  --description <text>     Short project description",
-  );
-
-  if (stack === "rust") {
-    lines.push("  --kind <kind>            Rust project layout (workspace, cli)");
-  }
-
-  lines.push(
     "  --visibility <vis>       Repository visibility (public, private)",
     "  --org <name>             GitHub organization name",
   );
 
-  if (stack !== "base") {
+  if (stack === "uv" || stack === "bun") {
     lines.push("  --publish-registries     Enable public registry publishing in release workflow");
   }
 
