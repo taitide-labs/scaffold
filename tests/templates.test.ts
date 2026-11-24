@@ -248,7 +248,7 @@ describe("template matrix rendering", () => {
 
         const agentsMd = readFileSync(path.join(tempDir, "AGENTS.md"), "utf8");
         expect(agentsMd).toContain("[CONTRIBUTING.md](CONTRIBUTING.md)");
-        expect(agentsMd).toContain("[docs/development_rules.md](docs/development_rules.md)");
+        expect(agentsMd).toContain("[development_rules.md](docs/development_rules.md)");
 
         const contributingMd = readFileSync(path.join(tempDir, "CONTRIBUTING.md"), "utf8");
         expect(contributingMd).toContain("## Commit 与版本规范");
